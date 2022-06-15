@@ -21,7 +21,7 @@ import { MemoryCache } from "./classes";
 import { AsyncCacheWrapper } from "./classes/asyncCacheWrapper";
 import { knownFileMimes } from "./constants/internal";
 import swaggerInitializerJs from "./resources/swagger-initializer_js";
-import { ICache, SwaggerBaseDocument, SwaggerSourceErrorHandler, SwaggerSourceValue } from "./types";
+import { ICache, SwaggerBaseDocument, SwaggerDocumentUpdater, SwaggerSourceErrorHandler, SwaggerSourceValue } from "./types";
 import { Nilable } from "./types/internal";
 import { createSwaggerDocumentBuilder, createSwaggerPathValidator, getSwaggerDocsBasePath, ICreateSwaggerDocumentBuilderOptions, isNil, normalizeRouterPath, throwIfInvalidOpenAPIVersion, toSourceFetcherSafe } from "./utils/internal";
 
@@ -57,6 +57,10 @@ export interface ISetupSwaggerProxyOptions {
      * Is invoked, when downloading a Swagger document from a source.
      */
     onSourceError?: Nilable<SwaggerSourceErrorHandler>;
+    /**
+     * An optional function, which updates a (downloaded) Swagger document.
+     */
+    onUpdateDocument?: Nilable<SwaggerDocumentUpdater>;
     /**
      * Reset the code of `window.onload` function of the `swagger-initializer.js` file
      * or not.
@@ -162,6 +166,12 @@ export function setupSwaggerProxy(server: IHttpServer, options: ISetupSwaggerPro
         }
     }
 
+    if (!isNil(options.onUpdateDocument)) {
+        if (typeof options.onUpdateDocument !== "function") {
+            throw new TypeError("options.onUpdateDocument must be of type function");
+        }
+    }
+
     const defaultCache: ICache = new MemoryCache();
 
     const basePath = getSwaggerDocsBasePath(options.basePath);
@@ -177,10 +187,12 @@ export function setupSwaggerProxy(server: IHttpServer, options: ISetupSwaggerPro
         "cache": undefined!,
         "cacheKey": undefined!,
         "onSourceError": options.onSourceError,
+        "onUpdateDocument": options.onUpdateDocument,
         "sourceFetchers": undefined!,
         "version": undefined!
     };
 
+    // make these props of `swaggerDocBuilderOptions` dynamic
     Object.defineProperties(swaggerDocBuilderOptions, {
         // swaggerDocBuilderOptions.baseDocument
         "baseDocument": {

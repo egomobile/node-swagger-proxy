@@ -43,6 +43,24 @@ export interface ICache {
 }
 
 /**
+ * A context for a `SwaggerDocumentUpdater` call.
+ */
+export interface ISwaggerDocumentUpdaterContext {
+    /**
+     * The document to update.
+     */
+    document: OpenAPIV3.Document;
+    /**
+     * The zero-based index of the underlying source.
+     */
+    index: number;
+    /**
+     * Indicates if `document` comes from cache or not.
+     */
+    isFromCache: boolean;
+}
+
+/**
  * A source with a Swagger / OpenAPI document.
  */
 export interface ISwaggerSource {
@@ -80,6 +98,11 @@ export interface ISwaggerSourceFetcherContext {
  * A base Swagger document.
  */
 export type SwaggerBaseDocument = Omit<OpenAPIV3.Document, "components" | "openapi" | "paths">;
+
+/**
+ * A function, which updates a swagger document.
+ */
+export type SwaggerDocumentUpdater = (context: ISwaggerDocumentUpdaterContext) => any;
 
 /**
  * A function, which handles an error, that happens while a download

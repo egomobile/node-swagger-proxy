@@ -23,7 +23,7 @@ import semver from "semver";
 import { URL } from "url";
 import { AsyncCacheWrapper } from "../../classes/asyncCacheWrapper";
 import { NOT_FOUND } from "../../constants/internal";
-import { SwaggerBaseDocument, SwaggerSourceErrorHandler, SwaggerSourceFetcher, SwaggerSourceValue } from "../../types";
+import { ISwaggerDocumentUpdaterContext, SwaggerBaseDocument, SwaggerDocumentUpdater, SwaggerSourceErrorHandler, SwaggerSourceFetcher, SwaggerSourceValue } from "../../types";
 import type { Nil, Nilable } from "../../types/internal";
 import { download } from "./download";
 
@@ -32,6 +32,7 @@ export interface ICreateSwaggerDocumentBuilderOptions {
     readonly cache: AsyncCacheWrapper;
     readonly cacheKey: Nilable<any>;
     readonly onSourceError: Nilable<SwaggerSourceErrorHandler>;
+    readonly onUpdateDocument: Nilable<SwaggerDocumentUpdater>;
     readonly sourceFetchers: SwaggerSourceFetcher[];
     readonly version: string;
 }
@@ -63,6 +64,9 @@ export function createSwaggerDocumentBuilder(options: ICreateSwaggerDocumentBuil
         const baseDocument = options.baseDocument;
         const sourceFetchers = [...options.sourceFetchers];
         const onSourceError = options.onSourceError;
+        const onUpdateDocument = options.onUpdateDocument ? asAsync<SwaggerDocumentUpdater>(
+            options.onUpdateDocument
+        ) : null;
         const version = options.version;
 
         let cachedDocumentList: any = await cache.get(documentsCacheKey, NOT_FOUND);
@@ -93,10 +97,28 @@ export function createSwaggerDocumentBuilder(options: ICreateSwaggerDocumentBuil
 
             try {
                 let sourceDocument: Nilable<OpenAPIV3.Document> = cachedDocumentList[i];
-                if (!sourceDocument) {
+
+                let isSourceDocumentFromCache: boolean;
+                if (sourceDocument) {
+                    isSourceDocumentFromCache = true;
+                }
+                else {
                     sourceDocument = await fetchDocument({
                         "index": i
                     });
+
+                    isSourceDocumentFromCache = false;
+                }
+
+                if (onUpdateDocument) {
+                    const updateContext: ISwaggerDocumentUpdaterContext = {
+                        "document": sourceDocument,
+                        "index": i,
+                        "isFromCache": isSourceDocumentFromCache
+                    };
+
+                    await onUpdateDocument(updateContext);
+                    sourceDocument = updateContext.document;
                 }
 
                 if (typeof sourceDocument !== "object") {
