@@ -14,28 +14,32 @@
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 import { HttpPathValidator, ParseError } from "@egomobile/http-server";
-import { ClientRequest as HttpClientRequest, IncomingMessage, request as httpRequest } from "http";
-import { request as httpsRequest } from "https";
+
 import yaml from "js-yaml";
 import merge from "merge";
 import type { OpenAPIV3 } from "openapi-types";
 import path from "path";
 import semver from "semver";
 import { URL } from "url";
-import { ISwaggerSource, SwaggerBaseDocument, SwaggerSourceErrorHandler } from "../types";
-import type { Nil, Nilable, Optional } from "../types/internal";
+import { SwaggerBaseDocument, SwaggerSourceErrorHandler, SwaggerSourceFetcher, SwaggerSourceValue } from "../../types";
+import type { Nil, Nilable } from "../../types/internal";
+import { download } from "./download";
 
 export interface ICreateSwaggerDocumentBuilderOptions {
     baseDocument: SwaggerBaseDocument;
     onSourceError: Nilable<SwaggerSourceErrorHandler>;
-    sources: ISwaggerSource[];
+    sourceFetchers: SwaggerSourceFetcher[];
     version: string;
 }
 
-export interface IDownloadResult {
-    contentType: Optional<string>;
-    data: Buffer;
-    url: URL;
+export function asAsync<TFunc extends Function = Function>(func: Function): TFunc {
+    if (func.constructor.name === "AsyncFunction") {
+        return func as TFunc;
+    }
+
+    return (async function (...args: any[]) {
+        return func(...args);
+    }) as any;
 }
 
 export function clone<T extends any = any>(val: any): T {
@@ -50,16 +54,22 @@ export function clone<T extends any = any>(val: any): T {
 
 export function createSwaggerDocumentBuilder(options: ICreateSwaggerDocumentBuilderOptions) {
     return async (): Promise<OpenAPIV3.Document> => {
+        const baseDocument = options.baseDocument;
+        const sourceFetchers = [...options.sourceFetchers];
+
         let components: OpenAPIV3.ComponentsObject = {};
         let paths: OpenAPIV3.PathsObject<{}, {}> = {};
 
-        for (const source of options.sources) {
-            try {
-                const { contentType, data, url } = await download(source.url);
+        for (let i = 0; i < sourceFetchers.length; i++) {
+            const fetchDocument = sourceFetchers[i];
 
-                const downloadedDocument = tryParseDocument(url, data, contentType);
+            try {
+                const downloadedDocument = await fetchDocument({
+                    "index": i
+                });
+
                 if (typeof downloadedDocument !== "object") {
-                    continue;
+                    throw TypeError("Downloaded Swagger document must be ob type object");
                 }
 
                 throwIfInvalidOpenAPIVersion(
@@ -75,16 +85,16 @@ export function createSwaggerDocumentBuilder(options: ICreateSwaggerDocumentBuil
                 }
             }
             catch (ex) {
-                options?.onSourceError({
+                options.onSourceError?.({
                     "error": ex,
-                    source
+                    "index": i
                 });
             }
         }
 
         return clone({
             "openapi": options.version,
-            ...clone<SwaggerBaseDocument>(options.baseDocument),
+            ...clone<SwaggerBaseDocument>(baseDocument),
             paths,
             components
         });
@@ -101,49 +111,7 @@ export function createSwaggerPathValidator(basePath: Nilable<string>): HttpPathV
     };
 }
 
-export function download(rawUrl: string) {
-    rawUrl = rawUrl.trim();
-    if (!rawUrl.startsWith("http://") && !rawUrl.startsWith("https://")) {
-        rawUrl = "https://" + rawUrl;
-    }
 
-    const url = new URL(rawUrl);
-
-    return new Promise<IDownloadResult>((resolve, reject) => {
-        let request: HttpClientRequest;
-
-        const onResponse = async (response: IncomingMessage) => {
-            try {
-                if (response.statusCode! >= 200 && response.statusCode! < 300) {
-                    const result: IDownloadResult = {
-                        "data": await readStream(response),
-                        "contentType": response.headers["content-type"]?.toLowerCase().trim() || undefined,
-                        url
-                    };
-
-                    resolve(result);
-                }
-                else {
-                    reject(new Error(`Unexpected response: ${response.statusCode}`));
-                }
-            }
-            catch (ex) {
-                reject(ex);
-            }
-        };
-
-        if (url.protocol === "https:") {
-            request = httpsRequest(url, onResponse);
-        }
-        else {
-            // http:
-
-            request = httpRequest(url, onResponse);
-        }
-
-        request.end();
-    });
-}
 
 export function getSwaggerDocsBasePath(basePath: Nilable<string>): string {
     if (isNil(basePath)) {
@@ -279,3 +247,46 @@ export function tryParseDocument(url: URL, data: Buffer, contentType: Nilable<st
     // nothing seem to help => throw ParseError
     throw new ParseError(new Error("Cannot parse document"));
 }
+
+export function toSourceFetcherSafe(value: SwaggerSourceValue): SwaggerSourceFetcher {
+    let fetcher: Nilable<SwaggerSourceFetcher>;
+
+    if (typeof value === "function") {
+        // use custom function
+
+        fetcher = value;
+    }
+    else if (
+        typeof value === "string" ||
+        value instanceof URL ||
+        typeof value === "object"
+    ) {
+        // download via URL
+
+        let downloadUrl: string;
+        if (typeof value === "string" || value instanceof URL) {
+            downloadUrl = `${value}`;
+        }
+        else {
+            downloadUrl = value.url;
+        }
+
+        if (typeof downloadUrl !== "string") {
+            throw new TypeError("url must be of type string");
+        }
+
+        fetcher = async () => {
+            const { contentType, data, url } = await download(downloadUrl);
+
+            return tryParseDocument(url, data, contentType);
+        };
+    }
+
+    if (typeof fetcher !== "function") {
+        throw new TypeError("value must be of type string, function or URL");
+    }
+
+    return asAsync(fetcher);
+}
+
+export * from "./download";

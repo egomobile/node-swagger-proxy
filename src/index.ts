@@ -19,9 +19,9 @@ import yaml from "js-yaml";
 import path from "path";
 import { knownFileMimes } from "./constants/internal";
 import swaggerInitializerJs from "./resources/swagger-initializer_js";
-import { ISwaggerSource, SwaggerBaseDocument, SwaggerSourceErrorHandler } from "./types";
+import { SwaggerBaseDocument, SwaggerSourceErrorHandler, SwaggerSourceValue } from "./types";
 import { Nilable } from "./types/internal";
-import { createSwaggerDocumentBuilder, createSwaggerPathValidator, getSwaggerDocsBasePath, isNil, normalizeRouterPath, throwIfInvalidOpenAPIVersion } from "./utils/internal";
+import { createSwaggerDocumentBuilder, createSwaggerPathValidator, getSwaggerDocsBasePath, ICreateSwaggerDocumentBuilderOptions, isNil, normalizeRouterPath, throwIfInvalidOpenAPIVersion, toSourceFetcherSafe } from "./utils/internal";
 
 /**
  * Options for `setupSwaggerProxy()` function.
@@ -54,7 +54,7 @@ export interface ISetupSwaggerProxyOptions {
     /**
      * One or more source.
      */
-    sources: ISwaggerSource[];
+    sources: SwaggerSourceValue[];
     /**
      * One or more custom middlewares to use.
      */
@@ -149,13 +149,6 @@ export function setupSwaggerProxy(server: IHttpServer, options: ISetupSwaggerPro
         }
     }
 
-    let version = (options.version ?? "").trim();
-    if (version === "") {
-        version = "3.0.3";
-    }
-
-    throwIfInvalidOpenAPIVersion(version);
-
     const basePath = getSwaggerDocsBasePath(options.basePath);
     const basePathWithSuffix = basePath + (basePath.endsWith("/") ? "" : "/");
 
@@ -164,12 +157,46 @@ export function setupSwaggerProxy(server: IHttpServer, options: ISetupSwaggerPro
         "resetOnloadJS": options.resetOnloadJS
     }), "utf8");
 
-    const buildDocument = createSwaggerDocumentBuilder({
-        "baseDocument": options.baseDocument,
+    const swaggerDocBuilderOptions: ICreateSwaggerDocumentBuilderOptions = {
+        "baseDocument": undefined!,
         "onSourceError": options.onSourceError,
-        "sources": options.sources,
-        version
+        "sourceFetchers": undefined!,
+        "version": undefined!
+    };
+
+    Object.defineProperties(swaggerDocBuilderOptions, {
+        // swaggerDocBuilderOptions.baseDocument
+        "baseDocument": {
+            "get": () => {
+                return options.baseDocument;
+            }
+        },
+
+        // swaggerDocBuilderOptions.sourceFetchers
+        "sourceFetchers": {
+            "get": () => {
+                return options.sources.map((source) => {
+                    return toSourceFetcherSafe(source);
+                });
+            }
+        },
+
+        // swaggerDocBuilderOptions.version
+        "version": {
+            "get": () => {
+                let version = (options.version ?? "").trim();
+                if (version === "") {
+                    version = "3.0.3";
+                }
+
+                throwIfInvalidOpenAPIVersion(version);
+
+                return version;
+            }
+        }
     });
+
+    const buildDocument = createSwaggerDocumentBuilder(swaggerDocBuilderOptions);
 
     server.get(
         createSwaggerPathValidator(options.basePath),

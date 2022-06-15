@@ -14,6 +14,7 @@
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 import type { OpenAPIV3 } from "openapi-types";
+import type { URL } from "url";
 
 /**
  * A source with a Swagger / OpenAPI document.
@@ -34,9 +35,19 @@ export interface ISwaggerSourceErrorHandlerContext {
      */
     error: any;
     /**
-     * The underlying source.
+     * The zero-based index of the underlying source.
      */
-    source: ISwaggerSource;
+    index: number;
+}
+
+/**
+ * Context for a `SwaggerSourceFetcher` call.
+ */
+export interface ISwaggerSourceFetcherContext {
+    /**
+     * The zero-based index of the underlying source.
+     */
+    index: number;
 }
 
 /**
@@ -49,3 +60,13 @@ export type SwaggerBaseDocument = Omit<OpenAPIV3.Document, "components" | "opena
  * of Swagger source.
  */
 export type SwaggerSourceErrorHandler = (context: ISwaggerSourceErrorHandlerContext) => any;
+
+/**
+ * A function, which fetches a swagger source.
+ */
+export type SwaggerSourceFetcher = (context: ISwaggerSourceFetcherContext) => OpenAPIV3.Document | PromiseLike<OpenAPIV3.Document>;
+
+/**
+ * A possible value for a `source` prop of an `ISwaggerSourceErrorHandlerContext` instance.
+ */
+export type SwaggerSourceValue = ISwaggerSource | string | URL;
