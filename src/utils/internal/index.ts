@@ -63,6 +63,7 @@ export function createSwaggerDocumentBuilder(options: ICreateSwaggerDocumentBuil
         const baseDocument = options.baseDocument;
         const sourceFetchers = [...options.sourceFetchers];
         const onSourceError = options.onSourceError;
+        const version = options.version;
 
         let cachedDocumentList: any = await cache.get(documentsCacheKey, NOT_FOUND);
 
@@ -127,7 +128,7 @@ export function createSwaggerDocumentBuilder(options: ICreateSwaggerDocumentBuil
         await updateCachedDocumentList();
 
         return clone({
-            "openapi": options.version,
+            "openapi": version,
             ...clone<SwaggerBaseDocument>(baseDocument),
             paths,
             components
