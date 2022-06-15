@@ -1,0 +1,77 @@
+{
+    "name": "@egomobile/swagger-proxy",
+    "version": "0.0.1",
+    "description": "Connects to multiply Swagger / OpenAPI instances and merge their documents to one.",
+    "main": "lib/index.js",
+    "engines": {
+        "node": ">=14.0.0"
+    },
+    "scripts": {
+        "build": "del ./lib && tsc",
+        "docs:generate": "del ./docs && typedoc --out ./docs ./src",
+        "lint": "eslint -c .eslintrc.js --ext .ts src",
+        "lint:fix": "eslint --fix -c .eslintrc.js --ext .ts src",
+        "sandbox": "nodemon --watch './sandbox.ts' --exec node -r ts-node/register --inspect=0.0.0.0:9229 ./sandbox.ts",
+        "test": "exit 0"
+    },
+    "jest": {
+        "preset": "ts-jest",
+        "testEnvironment": "node",
+        "testMatch": [
+            "**/__tests__/**/*.test.ts"
+        ],
+        "setupFilesAfterEnv": [
+            "./src/setupTests.ts"
+        ]
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/egomobile/node-swagger-proxy.git"
+    },
+    "keywords": [
+        "node",
+        "http server",
+        "swagger",
+        "proxy",
+        "openapi",
+        "ego"
+    ],
+    "author": "Next.e.GO Mobile SE, Aachen, Germany",
+    "license": "LGPL-3.0",
+    "files": [
+        "index.d.ts",
+        "CHANGELOG.md",
+        "LICENSE",
+        "lib",
+        "!lib/**/__tests__/**/*",
+        "!lib/**/*.map",
+        "!lib/**/setupTests.*",
+        "README.md"
+    ],
+    "dependencies": {
+        "js-yaml": "4.1.0",
+        "merge": "2.1.1",
+        "openapi-types": "12.0.0",
+        "semver": "7.3.7",
+        "swagger-ui-dist": "4.12.0"
+    },
+    "devDependencies": {
+        "@egomobile/http-server": "^0.36.2",
+        "@egomobile/tsconfig": "^5.0.0",
+        "@types/js-yaml": "4.0.5",
+        "@types/node": "14.18.21",
+        "@types/semver": "7.3.10",
+        "@types/swagger-ui-dist": "3.30.1",
+        "del-cli": "4.0.1",
+        "eslint": "8.17.0",
+        "eslint-config-ego": "^0.17.1",
+        "nodemon": "2.0.16",
+        "ts-node": "10.8.1",
+        "tslint": "6.1.3",
+        "typedoc": "0.22.17",
+        "typescript": "4.6.4"
+    },
+    "peerDependencies": {
+        "@egomobile/http-server": ">= 0.36.2"
+    }
+}
