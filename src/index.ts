@@ -17,9 +17,11 @@ import type { HttpMiddleware, IHttpServer } from "@egomobile/http-server";
 import fs from "fs";
 import yaml from "js-yaml";
 import path from "path";
+import { MemoryCache } from "./classes";
+import { AsyncCacheWrapper } from "./classes/asyncCacheWrapper";
 import { knownFileMimes } from "./constants/internal";
 import swaggerInitializerJs from "./resources/swagger-initializer_js";
-import { SwaggerBaseDocument, SwaggerSourceErrorHandler, SwaggerSourceValue } from "./types";
+import { ICache, SwaggerBaseDocument, SwaggerSourceErrorHandler, SwaggerSourceValue } from "./types";
 import { Nilable } from "./types/internal";
 import { createSwaggerDocumentBuilder, createSwaggerPathValidator, getSwaggerDocsBasePath, ICreateSwaggerDocumentBuilderOptions, isNil, normalizeRouterPath, throwIfInvalidOpenAPIVersion, toSourceFetcherSafe } from "./utils/internal";
 
@@ -35,6 +37,17 @@ export interface ISetupSwaggerProxyOptions {
      * The custom base path.
      */
     basePath?: Nilable<string>;
+    /**
+     * The custom cache provider to use.
+     */
+    cache?: Nilable<ICache>;
+    /**
+     * The custom key in the cache, which is used to store
+     * downloaded Swagger documents as array.
+     *
+     * @default "downloaded-swagger-documents"
+     */
+    cacheKey?: Nilable<any>;
     /**
      * The additional JavaScript code for the end of the
      * `window.onload` function of the `swagger-initializer.js` file.
@@ -149,6 +162,8 @@ export function setupSwaggerProxy(server: IHttpServer, options: ISetupSwaggerPro
         }
     }
 
+    const defaultCache: ICache = new MemoryCache();
+
     const basePath = getSwaggerDocsBasePath(options.basePath);
     const basePathWithSuffix = basePath + (basePath.endsWith("/") ? "" : "/");
 
@@ -159,6 +174,8 @@ export function setupSwaggerProxy(server: IHttpServer, options: ISetupSwaggerPro
 
     const swaggerDocBuilderOptions: ICreateSwaggerDocumentBuilderOptions = {
         "baseDocument": undefined!,
+        "cache": undefined!,
+        "cacheKey": undefined!,
         "onSourceError": options.onSourceError,
         "sourceFetchers": undefined!,
         "version": undefined!
@@ -169,6 +186,20 @@ export function setupSwaggerProxy(server: IHttpServer, options: ISetupSwaggerPro
         "baseDocument": {
             "get": () => {
                 return options.baseDocument;
+            }
+        },
+
+        // swaggerDocBuilderOptions.cache
+        "cache": {
+            "get": () => {
+                return new AsyncCacheWrapper(options.cache ?? defaultCache);
+            }
+        },
+
+        // swaggerDocBuilderOptions.cacheKey
+        "cacheKey": {
+            "get": () => {
+                return options.cacheKey ?? "downloaded-swagger-documents";
             }
         },
 

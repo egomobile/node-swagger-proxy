@@ -13,12 +13,4 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-export const knownFileMimes: Record<string, string> = {
-    ".css": "text/css; charset=UTF-8",
-    ".html": "text/html; charset=UTF-8",
-    ".js": "text/javascript; charset=UTF-8",
-    ".json": "application/json; charset=UTF-8",
-    ".png": "image/png"
-};
-
-export const NOT_FOUND = Symbol("NOT_FOUND");
+export * from "./memoryCache";

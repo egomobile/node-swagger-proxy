@@ -21,15 +21,19 @@ import type { OpenAPIV3 } from "openapi-types";
 import path from "path";
 import semver from "semver";
 import { URL } from "url";
+import { AsyncCacheWrapper } from "../../classes/asyncCacheWrapper";
+import { NOT_FOUND } from "../../constants/internal";
 import { SwaggerBaseDocument, SwaggerSourceErrorHandler, SwaggerSourceFetcher, SwaggerSourceValue } from "../../types";
 import type { Nil, Nilable } from "../../types/internal";
 import { download } from "./download";
 
 export interface ICreateSwaggerDocumentBuilderOptions {
-    baseDocument: SwaggerBaseDocument;
-    onSourceError: Nilable<SwaggerSourceErrorHandler>;
-    sourceFetchers: SwaggerSourceFetcher[];
-    version: string;
+    readonly baseDocument: SwaggerBaseDocument;
+    readonly cache: AsyncCacheWrapper;
+    readonly cacheKey: Nilable<any>;
+    readonly onSourceError: Nilable<SwaggerSourceErrorHandler>;
+    readonly sourceFetchers: SwaggerSourceFetcher[];
+    readonly version: string;
 }
 
 export function asAsync<TFunc extends Function = Function>(func: Function): TFunc {
@@ -54,43 +58,73 @@ export function clone<T extends any = any>(val: any): T {
 
 export function createSwaggerDocumentBuilder(options: ICreateSwaggerDocumentBuilderOptions) {
     return async (): Promise<OpenAPIV3.Document> => {
+        const cache = options.cache;
+        const documentsCacheKey = options.cacheKey;
         const baseDocument = options.baseDocument;
         const sourceFetchers = [...options.sourceFetchers];
+        const onSourceError = options.onSourceError;
+
+        let cachedDocumentList: any = await cache.get(documentsCacheKey, NOT_FOUND);
+
+        const updateCachedDocumentList = async () => {
+            await cache.set(documentsCacheKey, cachedDocumentList);
+        };
+        const reinitCachedDocumentList = async () => {
+            cachedDocumentList = Array(sourceFetchers.length).fill(undefined);
+
+            await updateCachedDocumentList();
+        };
 
         let components: OpenAPIV3.ComponentsObject = {};
         let paths: OpenAPIV3.PathsObject<{}, {}> = {};
+
+        if (!Array.isArray(cachedDocumentList)) {
+            await reinitCachedDocumentList();
+        }
+        else {
+            if (cachedDocumentList.length !== sourceFetchers.length) {
+                await reinitCachedDocumentList();
+            }
+        }
 
         for (let i = 0; i < sourceFetchers.length; i++) {
             const fetchDocument = sourceFetchers[i];
 
             try {
-                const downloadedDocument = await fetchDocument({
-                    "index": i
-                });
+                let sourceDocument: Nilable<OpenAPIV3.Document> = cachedDocumentList[i];
+                if (!sourceDocument) {
+                    sourceDocument = await fetchDocument({
+                        "index": i
+                    });
+                }
 
-                if (typeof downloadedDocument !== "object") {
+                if (typeof sourceDocument !== "object") {
                     throw TypeError("Downloaded Swagger document must be ob type object");
                 }
 
                 throwIfInvalidOpenAPIVersion(
-                    downloadedDocument.openapi.trim()
+                    sourceDocument.openapi.trim()
                 );
 
                 // merge them
-                if (typeof downloadedDocument.components === "object") {
-                    components = mergeObjects(components, downloadedDocument.components);
+                if (typeof sourceDocument.components === "object") {
+                    components = mergeObjects(components, sourceDocument.components);
                 }
-                if (typeof downloadedDocument.paths === "object") {
-                    paths = mergeObjects(paths, downloadedDocument.paths);
+                if (typeof sourceDocument.paths === "object") {
+                    paths = mergeObjects(paths, sourceDocument.paths);
                 }
+
+                cachedDocumentList[i] = sourceDocument;
             }
             catch (ex) {
-                options.onSourceError?.({
+                onSourceError?.({
                     "error": ex,
                     "index": i
                 });
             }
         }
+
+        await updateCachedDocumentList();
 
         return clone({
             "openapi": options.version,

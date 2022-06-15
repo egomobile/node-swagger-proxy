@@ -17,6 +17,32 @@ import type { OpenAPIV3 } from "openapi-types";
 import type { URL } from "url";
 
 /**
+ * Describes a cache.
+ */
+export interface ICache {
+    /**
+     * Tries to get a value from cache.
+     *
+     * @param {any} key The key.
+     * @param {TDefault} [defaultValue=undefined] The custom default value.
+     *
+     * @return {T|TDefault|PromiseLike<T|TDefault>} The value or the default value.
+     */
+    get<T extends any = any>(key: any): T | undefined | PromiseLike<T | undefined>;
+    get<T extends any = any, TDefault extends any = T>(key: any, defaultValue: TDefault): T | TDefault | PromiseLike<T | TDefault>;
+
+    /**
+     * Tries to write a value to cache.
+     *
+     * @param {any} key The key.
+     * @param {any} value The value to write.
+     *
+     * @returns {boolean|PromiseLike<boolean>} A value, that indicates if operation was successful or not.
+     */
+    set(key: any, value: any): boolean | PromiseLike<boolean>;
+}
+
+/**
  * A source with a Swagger / OpenAPI document.
  */
 export interface ISwaggerSource {

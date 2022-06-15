@@ -13,12 +13,30 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-export const knownFileMimes: Record<string, string> = {
-    ".css": "text/css; charset=UTF-8",
-    ".html": "text/html; charset=UTF-8",
-    ".js": "text/javascript; charset=UTF-8",
-    ".json": "application/json; charset=UTF-8",
-    ".png": "image/png"
-};
+import type { ICache } from "../types";
 
-export const NOT_FOUND = Symbol("NOT_FOUND");
+export class AsyncCacheWrapper implements ICache {
+    public constructor(
+        public readonly cache: ICache
+    ) { }
+
+    public async get<T extends any = any, TDefault extends any = T>(
+        key: any, defaultValue?: TDefault
+    ): Promise<T | TDefault | undefined> {
+        try {
+            return await Promise.resolve(this.cache.get(key, defaultValue));
+        }
+        catch {
+            return defaultValue;
+        }
+    }
+
+    public async set(key: any, value: any): Promise<boolean> {
+        try {
+            return await Promise.resolve(this.cache.set(key, value));
+        }
+        catch {
+            return false;
+        }
+    }
+}
