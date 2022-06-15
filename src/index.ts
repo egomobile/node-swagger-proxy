@@ -343,4 +343,6 @@ export function setupSwaggerProxy(server: IHttpServer, options: ISetupSwaggerPro
     );
 }
 
+export * from "./factories";
 export * from "./types";
+

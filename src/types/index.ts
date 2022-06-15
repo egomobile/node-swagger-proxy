@@ -118,4 +118,4 @@ export type SwaggerSourceFetcher = (context: ISwaggerSourceFetcherContext) => Op
 /**
  * A possible value for a `source` prop of an `ISwaggerSourceErrorHandlerContext` instance.
  */
-export type SwaggerSourceValue = ISwaggerSource | string | URL;
+export type SwaggerSourceValue = ISwaggerSource | string | URL | SwaggerSourceFetcher;
