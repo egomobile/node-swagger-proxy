@@ -27,23 +27,30 @@ export class MemoryCache implements ICache {
     public get<T extends any = any, TDefault extends any = T>(
         key: any, defaultValue?: TDefault
     ): T | TDefault | undefined {
-        const value = this._data[this.getStringKey(key)];
+        try {
+            const value = this._data[this.getStringKey(key)];
 
-        if (typeof value !== "undefined") {
-            return value;
+            if (typeof value !== "undefined") {
+                return value;
+            }
         }
-        else {
-            return defaultValue;
-        }
+        catch { }
+
+        return defaultValue;
     }
 
     /**
      * @inheritdoc
      */
     public set(key: any, value: any): boolean {
-        this._data[this.getStringKey(key)] = value;
+        try {
+            this._data[this.getStringKey(key)] = value;
 
-        return true;
+            return true;
+        }
+        catch {
+            return false;
+        }
     }
 
     private getStringKey(key: any): string {
