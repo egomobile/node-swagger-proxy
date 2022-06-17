@@ -4,7 +4,7 @@
 
 # @egomobile/swagger-proxy
 
-> Connects to multiply [Swagger / OpenAPI](https://swagger.io/docs/specification/about/) instances and merge their documents to one.
+> Extension for [@egomobile/http-server](https://github.com/egomobile/node-http-server), which connects to multiply [Swagger / OpenAPI](https://swagger.io/docs/specification/about/) instances and merge their documents to one.
 
 ## Install
 
@@ -17,7 +17,50 @@ npm install --save @egomobile/swagger-proxy
 
 ## Usage
 
-@TODO
+```typescript
+import createServer from "@egomobile/http-server";
+import { setupSwaggerProxy } from "@egomobile/swagger-proxy";
+
+async function main() {
+  const app = createServer();
+
+  setupSwaggerProxy(app, {
+    baseDocument: {
+      info: {
+        title: "My merged API",
+        version: "1.0.0",
+      },
+    },
+
+    sources: [
+      {
+        url: "https://raw.githubusercontent.com/OAI/OpenAPI-Specification/main/examples/v3.0/link-example.json",
+      },
+      {
+        url: "https://raw.githubusercontent.com/OAI/OpenAPI-Specification/main/examples/v3.0/callback-example.yaml",
+      },
+      {
+        url: "https://raw.githubusercontent.com/OAI/OpenAPI-Specification/main/examples/v3.0/petstore.yaml",
+      },
+    ],
+  });
+
+  await app.listen(8080);
+
+  const baseURL = `http://localhost:${app.port}/swagger`;
+
+  console.log("You should now be able to access documentation at:");
+  console.log(`- ${baseURL}`);
+
+  console.log();
+
+  console.log("You can download documentation as files from:");
+  console.log(`- JSON: ${baseURL}/json`);
+  console.log(`- YAML: ${baseURL}/yaml`);
+}
+
+main().catch(console.error);
+```
 
 ## Documentation
 

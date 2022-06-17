@@ -1,6 +1,6 @@
 {
     "name": "@egomobile/swagger-proxy",
-    "version": "0.0.6",
+    "version": "0.1.0",
     "description": "Connects to multiply Swagger / OpenAPI instances and merge their documents to one.",
     "main": "lib/index.js",
     "engines": {
@@ -32,8 +32,18 @@
         "node",
         "http server",
         "swagger",
+        "swagger ui",
+        "http",
+        "https",
+        "file",
+        "files",
         "proxy",
         "openapi",
+        "merge",
+        "microservice",
+        "microservices",
+        "kubernetes",
+        "docker",
         "ego"
     ],
     "author": "Next.e.GO Mobile SE, Aachen, Germany",

@@ -115,7 +115,7 @@ const { readFile, stat } = fs.promises;
  *         "url": "https://raw.githubusercontent.com/OAI/OpenAPI-Specification/main/examples/v3.0/link-example.json"
  *       },
  *       {
- *         "url": "https://raw.githubusercontent.com/OAI/OpenAPI-Specification/main/examples/v3.0/callback-example.yaml""
+ *         "url": "https://raw.githubusercontent.com/OAI/OpenAPI-Specification/main/examples/v3.0/callback-example.yaml"
  *       },
  *       {
  *         "url": "https://raw.githubusercontent.com/OAI/OpenAPI-Specification/main/examples/v3.0/petstore.yaml"
