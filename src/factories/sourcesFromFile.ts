@@ -14,6 +14,7 @@
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 import fs from "fs";
+import mrmime from "mrmime";
 import path from "path";
 import { pathToFileURL } from "url";
 import type { SwaggerSourceValue } from "../types";
@@ -69,7 +70,7 @@ export function sourcesFromFile(file: string): SwaggerSourceValue[] {
         async () => {
             const data = await readFile(file);
 
-            return tryParseDocument(pathToFileURL(file), data, null);
+            return tryParseDocument(pathToFileURL(file), data, mrmime.lookup(file) ?? null);
         }
     ];
 }

@@ -1,6 +1,6 @@
 {
     "name": "@egomobile/swagger-proxy",
-    "version": "0.1.0",
+    "version": "0.2.0",
     "description": "Connects to multiply Swagger / OpenAPI instances and merge their documents to one.",
     "main": "lib/index.js",
     "engines": {
@@ -61,6 +61,7 @@
     "dependencies": {
         "js-yaml": "4.1.0",
         "merge": "2.1.1",
+        "mrmime": "1.0.1",
         "openapi-types": "12.0.0",
         "semver": "7.3.7",
         "swagger-ui-dist": "4.12.0"
