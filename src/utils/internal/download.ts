@@ -24,6 +24,8 @@ export interface IDownloadResult {
     url: URL;
 }
 
+const supportedProtocols = ["http:", "https:"];
+
 export function download(rawUrl: string): Promise<IDownloadResult> {
     rawUrl = rawUrl.trim();
     if (!rawUrl.startsWith("http://") && !rawUrl.startsWith("https://")) {
@@ -32,9 +34,11 @@ export function download(rawUrl: string): Promise<IDownloadResult> {
 
     const url = new URL(rawUrl);
 
-    return new Promise<IDownloadResult>((resolve, reject) => {
-        let request: HttpClientRequest;
+    if (!supportedProtocols.includes(url.protocol)) {
+        throw new Error(`Only following protocols are supported: ${supportedProtocols.join(", ")}`);
+    }
 
+    return new Promise<IDownloadResult>((resolve, reject) => {
         const onResponse = async (response: IncomingMessage) => {
             try {
                 if (response.statusCode! >= 200 && response.statusCode! < 300) {
@@ -55,12 +59,12 @@ export function download(rawUrl: string): Promise<IDownloadResult> {
             }
         };
 
+        let request: HttpClientRequest;
+
         if (url.protocol === "https:") {
             request = httpsRequest(url, onResponse);
         }
         else {
-            // http:
-
             request = httpRequest(url, onResponse);
         }
 

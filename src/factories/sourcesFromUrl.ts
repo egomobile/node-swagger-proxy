@@ -13,21 +13,16 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-import fs from "fs";
-import path from "path";
-import { pathToFileURL } from "url";
-import type { SwaggerSourceFetcher } from "../types";
-import { tryParseDocument } from "../utils/internal";
-
-const { readFile } = fs.promises;
+import type { SwaggerSourceValue } from "../types";
+import { download, tryParseDocument } from "../utils/internal";
 
 /**
- * Creates a Swagger document fetcher for a local file.
+ * Creates Swagger document sources from an URL.
  *
  * @example
  * ```
  * import createServer from "@egomobile/http-server"
- * import { setupSwaggerProxy, sourceFromFile } from "@egomobile/swagger-proxy"
+ * import { setupSwaggerProxy, sourcesFromUrl } from "@egomobile/swagger-proxy"
  *
  * async function main() {
  *   const app = createServer()
@@ -41,8 +36,7 @@ const { readFile } = fs.promises;
  *     },
  *
  *     "sources": [
- *       sourceFromFile('/path/to/local/file1.json'),
- *       sourceFromFile('/path/to/local/file2.yaml'),
+ *       ...sourcesFromUrl("https://raw.githubusercontent.com/OAI/OpenAPI-Specification/main/examples/v3.0/petstore.yaml"),
  *     ]
  *   })
  *
@@ -52,24 +46,20 @@ const { readFile } = fs.promises;
  * main().catch(console.error)
  * ```
  *
- * @param {string} file The path to the file.
+ * @param {string} rawUrl The raw URL.
  *
- * @returns {SwaggerSourceFetcher} The new fetcher.
+ * @returns {SwaggerSourceValue[]} The sources.
  */
-export function sourceFromFile(file: string): SwaggerSourceFetcher {
-    if (typeof file !== "string") {
-        throw new TypeError("file must be of type string");
+export function sourcesFromUrl(rawUrl: string): SwaggerSourceValue[] {
+    if (typeof rawUrl !== "string") {
+        throw new TypeError("rawUrl must be of type string");
     }
 
-    if (!path.isAbsolute(file)) {
-        file = path.join(process.cwd(), file);
-    }
+    return [
+        async () => {
+            const { contentType, data, url } = await download(rawUrl);
 
-    const url = pathToFileURL(file);
-
-    return async () => {
-        const data = await readFile(file);
-
-        return tryParseDocument(url, data, null);
-    };
+            return tryParseDocument(url, data, contentType);
+        }
+    ];
 }
