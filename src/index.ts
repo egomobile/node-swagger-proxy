@@ -16,10 +16,10 @@
 import type { HttpMiddleware, IHttpServer } from "@egomobile/http-server";
 import fs from "fs";
 import yaml from "js-yaml";
+import mrmime from "mrmime";
 import path from "path";
 import { MemoryCache } from "./classes";
 import { AsyncCacheWrapper } from "./classes/asyncCacheWrapper";
-import { knownFileMimes } from "./constants/internal";
 import swaggerInitializerJs from "./resources/swagger-initializer_js";
 import { ICache, SwaggerBaseDocument, SwaggerDocumentUpdater, SwaggerSourceErrorHandler, SwaggerSourceValue } from "./types";
 import { Nilable } from "./types/internal";
@@ -320,7 +320,7 @@ export function setupSwaggerProxy(server: IHttpServer, options: ISetupSwaggerPro
                 }
 
                 if (existingFile) {  // does file exist?
-                    const contentType = knownFileMimes[path.extname(existingFile)]
+                    const contentType = mrmime.lookup(path.extname(existingFile))
                         || "application/octet-stream";
                     const content = await readFile(existingFile);
 
