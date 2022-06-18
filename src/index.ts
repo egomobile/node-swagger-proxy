@@ -241,7 +241,7 @@ export function setupSwaggerProxy(server: IHttpServer, options: ISetupSwaggerPro
             const fileOrDir = normalizeRouterPath(request.url);
 
             // return as JSON?
-            if (fileOrDir.endsWith("/json") || fileOrDir.endsWith("/json/")) {
+            if (fileOrDir.endsWith("/json")) {
                 const document = await buildDocument();
                 const documentJson = Buffer.from(JSON.stringify(document), "utf8");
 
@@ -256,7 +256,7 @@ export function setupSwaggerProxy(server: IHttpServer, options: ISetupSwaggerPro
             }
 
             // return as YAML?
-            if (fileOrDir.endsWith("/yaml") || fileOrDir.endsWith("/yaml/")) {
+            if (fileOrDir.endsWith("/yaml")) {
                 const document = await buildDocument();
                 const documentYaml = Buffer.from(yaml.dump(document), "utf8");
 

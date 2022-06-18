@@ -1,6 +1,6 @@
 {
     "name": "@egomobile/swagger-proxy",
-    "version": "0.4.0",
+    "version": "0.5.0",
     "description": "Connects to multiply Swagger / OpenAPI instances and merge their documents to one.",
     "main": "lib/index.js",
     "engines": {
