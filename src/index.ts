@@ -23,7 +23,7 @@ import { AsyncCacheWrapper } from "./classes/asyncCacheWrapper";
 import swaggerInitializerJs from "./resources/swagger-initializer_js";
 import { ICache, SwaggerBaseDocument, SwaggerDocumentUpdater, SwaggerSourceErrorHandler, SwaggerSourceValue } from "./types";
 import { Nilable } from "./types/internal";
-import { createSwaggerDocumentBuilder, createSwaggerPathValidator, getSwaggerDocsBasePath, ICreateSwaggerDocumentBuilderOptions, isNil, normalizeRouterPath, throwIfInvalidOpenAPIVersion, toSourceFetcherSafe } from "./utils/internal";
+import { createSwaggerDocumentBuilder, createSwaggerPathValidator, ICreateSwaggerDocumentBuilderOptions, isNil, normalizeRouterPath, throwIfInvalidOpenAPIVersion, toSourceFetcherSafe } from "./utils/internal";
 
 /**
  * Options for `setupSwaggerProxy()` function.
@@ -48,10 +48,6 @@ export interface ISetupSwaggerProxyOptions {
      * @default "downloaded-swagger-documents"
      */
     cacheKey?: Nilable<any>;
-    /**
-     * The custom default path. If not defined, `basePath` is taken.
-     */
-    defaultPath?: Nilable<string>;
     /**
      * The additional JavaScript code for the end of the
      * `window.onload` function of the `swagger-initializer.js` file.
@@ -242,24 +238,10 @@ export function setupSwaggerProxy(server: IHttpServer, options: ISetupSwaggerPro
         createSwaggerPathValidator(options.basePath),
         options.use ?? [],
         async (request, response) => {
-            const basePath = getSwaggerDocsBasePath(options.basePath);
-            const basePathWithSuffix = basePath + (basePath.endsWith("/") ? "" : "/");
-            const defaultPath = options.defaultPath;
-
-            if (request.url === basePath) {
-                response.writeHead(301, {
-                    "Content-Length": "0",
-                    "Location": defaultPath || basePathWithSuffix
-                });
-
-                return;
-            }
-
-            let fileOrDir = normalizeRouterPath(request.url);
-            let relativePath = normalizeRouterPath(path.relative(basePath, fileOrDir));
+            const fileOrDir = normalizeRouterPath(request.url);
 
             // return as JSON?
-            if (["/json", "/json/"].includes(relativePath)) {
+            if (fileOrDir.endsWith("/json") || fileOrDir.endsWith("/json/")) {
                 const document = await buildDocument();
                 const documentJson = Buffer.from(JSON.stringify(document), "utf8");
 
@@ -274,7 +256,7 @@ export function setupSwaggerProxy(server: IHttpServer, options: ISetupSwaggerPro
             }
 
             // return as YAML?
-            if (["/yaml", "/yaml/"].includes(relativePath)) {
+            if (fileOrDir.endsWith("/yaml") || fileOrDir.endsWith("/yaml/")) {
                 const document = await buildDocument();
                 const documentYaml = Buffer.from(yaml.dump(document), "utf8");
 
@@ -288,7 +270,7 @@ export function setupSwaggerProxy(server: IHttpServer, options: ISetupSwaggerPro
                 return;
             }
 
-            let fullPath = path.join(pathToSwaggerUi, relativePath);
+            let fullPath = path.join(pathToSwaggerUi, fileOrDir);
 
             if (
                 fullPath.startsWith(pathToSwaggerUi + path.sep) ||

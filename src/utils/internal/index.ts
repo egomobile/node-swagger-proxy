@@ -168,8 +168,6 @@ export function createSwaggerPathValidator(basePath: Nilable<string>): HttpPathV
     };
 }
 
-
-
 export function getSwaggerDocsBasePath(basePath: Nilable<string>): string {
     if (isNil(basePath)) {
         basePath = "";
