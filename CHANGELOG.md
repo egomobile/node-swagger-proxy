@@ -1,6 +1,10 @@
 # Change Log (@egomobile/swagger-proxy)
 
-## 0.3.0
+## 0.4.0
+
+- add `defaultPath` to [ISetupSwaggerProxyOptions interface](https://egomobile.github.io/node-swagger-proxy/interfaces/ISetupSwaggerProxyOptions.html)
+
+## 0.3.1
 
 - remove internal constants
 

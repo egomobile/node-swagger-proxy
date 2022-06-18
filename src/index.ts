@@ -49,6 +49,10 @@ export interface ISetupSwaggerProxyOptions {
      */
     cacheKey?: Nilable<any>;
     /**
+     * The custom default path. If not defined, `basePath` is taken.
+     */
+    defaultPath?: Nilable<string>;
+    /**
      * The additional JavaScript code for the end of the
      * `window.onload` function of the `swagger-initializer.js` file.
      */
@@ -152,10 +156,6 @@ export function setupSwaggerProxy(server: IHttpServer, options: ISetupSwaggerPro
         throw new TypeError("options must be of type object");
     }
 
-    if (typeof options.baseDocument !== "object") {
-        throw new TypeError("options.baseDocument must be of type object");
-    }
-
     if (!Array.isArray(options.sources)) {
         throw new TypeError("options.sources must be of type Array");
     }
@@ -173,9 +173,6 @@ export function setupSwaggerProxy(server: IHttpServer, options: ISetupSwaggerPro
     }
 
     const defaultCache: ICache = new MemoryCache();
-
-    const basePath = getSwaggerDocsBasePath(options.basePath);
-    const basePathWithSuffix = basePath + (basePath.endsWith("/") ? "" : "/");
 
     const swaggerInitializerJSContent = Buffer.from(swaggerInitializerJs({
         "onloadJS": options.onloadJS,
@@ -245,10 +242,14 @@ export function setupSwaggerProxy(server: IHttpServer, options: ISetupSwaggerPro
         createSwaggerPathValidator(options.basePath),
         options.use ?? [],
         async (request, response) => {
+            const basePath = getSwaggerDocsBasePath(options.basePath);
+            const basePathWithSuffix = basePath + (basePath.endsWith("/") ? "" : "/");
+            const defaultPath = options.defaultPath;
+
             if (request.url === basePath) {
                 response.writeHead(301, {
                     "Content-Length": "0",
-                    "Location": basePathWithSuffix
+                    "Location": defaultPath || basePathWithSuffix
                 });
 
                 return;
