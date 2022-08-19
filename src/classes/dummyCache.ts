@@ -13,6 +13,22 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-export * from "./dummyCache";
-export * from "./memoryCache";
+import type { ICache } from "../types";
 
+/**
+ * A simple cache, that does nothing.
+ */
+export class DummyCache implements ICache {
+    public get<T extends any = any, TDefault extends any = T>(
+        key: any, defaultValue?: TDefault
+    ): T | TDefault | undefined {
+        return defaultValue;
+    }
+
+    /**
+     * @inheritdoc
+     */
+    public set(key: any, value: any): boolean {
+        return true;
+    }
+}

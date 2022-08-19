@@ -18,11 +18,11 @@ import fs from "fs";
 import yaml from "js-yaml";
 import mrmime from "mrmime";
 import path from "path";
-import { MemoryCache } from "./classes";
+import { DummyCache, MemoryCache } from "./classes";
 import { AsyncCacheWrapper } from "./classes/asyncCacheWrapper";
 import swaggerInitializerJs from "./resources/swagger-initializer_js";
-import { ICache, SwaggerBaseDocument, SwaggerDocumentUpdater, SwaggerSourceErrorHandler, SwaggerSourceValue } from "./types";
-import { Nilable } from "./types/internal";
+import type { ICache, SwaggerBaseDocument, SwaggerDocumentUpdater, SwaggerSourceErrorHandler, SwaggerSourceValue } from "./types";
+import type { Nilable } from "./types/internal";
 import { createSwaggerDocumentBuilder, createSwaggerPathValidator, ICreateSwaggerDocumentBuilderOptions, isNil, normalizeRouterPath, throwIfInvalidOpenAPIVersion, toSourceFetcherSafe } from "./utils/internal";
 
 /**
@@ -39,8 +39,10 @@ export interface ISetupSwaggerProxyOptions {
     basePath?: Nilable<string>;
     /**
      * The custom cache provider to use.
+     *
+     * `false` indicates to use no cache.
      */
-    cache?: Nilable<ICache>;
+    cache?: Nilable<ICache | false>;
     /**
      * The custom key in the cache, which is used to store
      * downloaded Swagger documents as array.
@@ -197,7 +199,12 @@ export function setupSwaggerProxy(server: IHttpServer, options: ISetupSwaggerPro
         // swaggerDocBuilderOptions.cache
         "cache": {
             "get": () => {
-                return new AsyncCacheWrapper(options.cache ?? defaultCache);
+                let cache = options.cache;
+                if (cache === false) {
+                    cache = new DummyCache();
+                }
+
+                return new AsyncCacheWrapper(cache ?? defaultCache);
             }
         },
 
